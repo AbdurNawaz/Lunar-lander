@@ -46,7 +46,7 @@ class Agent():
                 self.learn(experiences, GAMMA)
 
     def act(self, state, eps):
-        #This function returns actions ffor given stateas per the current policy
+        #This function returns actions for given states as per the current policy
 
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
 
@@ -59,3 +59,29 @@ class Agent():
             return np.argmax(action_values.cpu().data.numpy())
         else:
             return random.choice(np.arange(self.action_values))
+
+    def learn(self, experiences, gamma):
+
+        states, actions, rewards, next_states, dones = experiences
+
+        Q_targets = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
+
+        Q_targets = rewards + (gamma*Q_targets*(1 - dones))
+
+        Q_expected =  self.qnetwork_local(states).gather(1, actions)
+
+        loss = F.mse_loss(Q_expected, Q_targets)
+
+        self.optimizer.eval()
+        loss.backward()
+        self.optimizer.step()
+
+        self.soft_update(self.qnetwork_local, self.qnetwork_target, TAU)
+
+    def soft_update(self, local_layer, target_layer, tau):
+
+        for target_param, local_param in zip(target_model.parameters(), local_layer.parameters()):
+            target_param.data.copy_(tau*local_param.data + (1-tau)*target_param.data)
+
+
+    
